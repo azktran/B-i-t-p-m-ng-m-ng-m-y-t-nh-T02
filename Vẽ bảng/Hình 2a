@@ -1,0 +1,43 @@
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Dữ liệu trích xuất từ Bảng 5.1 (Terminal testinternet4.py)
+models = ['Baseline', 'Logistic Regression', 'Decision Tree']
+metrics = ['Accuracy', 'Macro Precision', 'Macro Recall', 'Macro F1-score']
+
+scores = {
+    'Baseline': [0.48, 0.16, 0.33, 0.21],
+    'Logistic Regression': [0.88, 0.92, 0.69, 0.68],
+    'Decision Tree': [0.98, 0.98, 0.95, 0.97]
+}
+
+x = np.arange(len(metrics))
+width = 0.25  # Độ rộng mỗi cột
+
+fig, ax = plt.subplots(figsize=(10, 5.5))
+
+colors = ['#7f8c8d', '#2980b9', '#e67e22'] # Xám (Baseline), Xanh dương (LogReg), Cam nổi bật (Decision Tree)
+
+for i, (model_name, values) in enumerate(scores.items()):
+    offset = (i - 1) * width
+    rects = ax.bar(x + offset, values, width, label=model_name, color=colors[i], edgecolor='black', linewidth=0.8, alpha=0.9)
+    # Hiển thị số liệu trên đỉnh mỗi cột
+    for rect in rects:
+        h = rect.get_height()
+        ax.annotate(f'{h:.2f}',
+                    xy=(rect.get_x() + rect.get_width() / 2, h),
+                    xytext=(0, 3),  # offset 3 points
+                    textcoords="offset points",
+                    ha='center', va='bottom', fontsize=10, fontweight='bold')
+
+ax.set_ylabel('Điểm số (Score: 0.0 - 1.0)', fontsize=11, fontweight='bold')
+ax.set_title('So sánh hiệu năng các mô hình phân loại trên tập Test (N = 82)', fontsize=13, fontweight='bold', pad=15)
+ax.set_xticks(x)
+ax.set_xticklabels(metrics, fontsize=11, fontweight='bold')
+ax.set_ylim(0, 1.15)
+ax.grid(axis='y', linestyle='--', alpha=0.5)
+ax.legend(loc='upper left', frameon=True, shadow=True, fontsize=10)
+
+plt.tight_layout()
+plt.savefig("fig_model_comparison.png", dpi=300)
+print("-> Đã xuất thành công biểu đồ: fig_model_comparison.png")
