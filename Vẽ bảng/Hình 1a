@@ -1,0 +1,129 @@
+import matplotlib.pyplot as plt
+import pandas as pd
+
+df = pd.read_csv("dataset_labeled.csv")
+
+# Tính tỷ lệ % đóng góp của từng kịch bản (network_type) vào mỗi nhãn (label)
+# normalize='columns' nghĩa là tổng mỗi cột nhãn (GOOD, ACCEPTABLE, POOR) bằng 100%
+ct_composition = (
+    pd.crosstab(df["network_type"], df["label"], normalize="columns") * 100
+)
+
+# Thứ tự các nhãn hiển thị theo chuẩn
+ct_composition = ct_composition[["GOOD", "ACCEPTABLE", "POOR"]]
+
+# Vẽ biểu đồ cột chồng
+ax = ct_composition.T.plot(
+    kind="bar",
+    stacked=True,
+    figsize=(9, 6),
+    colormap="tab10",
+    edgecolor="black",
+    linewidth=0.8,
+)
+
+plt.title(
+    "Cơ cấu tỷ lệ (%) các kịch bản đo kiểm trong từng nhãn chất lượng",
+    fontsize=12,
+    fontweight="bold",
+    pad=15,
+)
+plt.ylabel("Tỷ trọng đóng góp (%)", fontsize=11, fontweight="bold")
+plt.xlabel("Nhãn chất lượng mạng (Label)", fontsize=11, fontweight="bold")
+plt.xticks(rotation=0, fontsize=11, fontweight="bold")
+plt.ylim(0, 100)
+plt.grid(axis="y", linestyle="--", alpha=0.5)
+
+# Đặt chú thích (Legend) ra ngoài để không che biểu đồ
+plt.legend(
+    title="Kịch bản đo kiểm",
+    bbox_to_anchor=(1.02, 1),
+    loc="upper left",
+    frameon=True,
+)
+
+plt.tight_layout()
+plt.savefig("fig_label_composition.png", dpi=300)
+print("-> Đã xuất thành công biểu đồ: fig_label_composition.png")
+'''
+
+''' Vẽ bảng: Hình 1c
+import matplotlib.pyplot as plt
+
+
+fig, ax = plt.subplots(figsize=(12, 4.5))
+ax.axis('off')
+
+# Chuẩn bị dữ liệu vẽ bảng
+cell_data = []
+for idx, row in table_5_0_full.reset_index().iterrows():
+    cell_data.append([
+        row['index'],
+        int(row['Tổng mẫu']),
+        f"{row['Tỷ lệ ACCEPTABLE (%)']:.1f}%",
+        f"{row['Tỷ lệ GOOD (%)']:.1f}%",
+        f"{row['Tỷ lệ POOR (%)']:.1f}%",
+        f"{row['RTT_max (ms)']:.2f}",
+        f"{row['Jitter_max (ms)']:.2f}",
+        f"{row['Loss_max (%)']:.2f}%"
+    ])
+
+columns = ['Kịch bản đo kiểm', 'Tổng mẫu', 'ACCEPTABLE', 'GOOD', 'POOR', 'RTT max (ms)', 'Jitter max (ms)', 'Loss max (%)']
+
+table = ax.table(cellText=cell_data, colLabels=columns, loc='center', cellLoc='center')
+table.auto_set_font_size(False)
+table.set_fontsize(10)
+table.scale(1.1, 1.6)
+
+# Tô màu tiêu đề cột và dòng tổng
+for j, col in enumerate(columns):
+    table[(0, j)].set_facecolor('#2980b9')
+    table[(0, j)].set_text_props(color='white', weight='bold')
+
+for j in range(len(columns)):
+    table[(len(cell_data), j)].set_facecolor('#ecf0f1')
+    table[(len(cell_data), j)].set_text_props(weight='bold')
+
+plt.title("Bảng 5.0: Thống kê định lượng theo 8 kịch bản đo kiểm thực tế", fontsize=13, weight='bold', pad=20)
+plt.tight_layout()
+plt.savefig("table_5_0_figure.png", dpi=300, bbox_inches='tight')
+print("-> Đã xuất thành công hình ảnh bảng biểu: table_5_0_figure.png")
+
+
+fig, ax = plt.subplots(figsize=(12, 4.5))
+ax.axis('off')
+
+# Chuẩn bị dữ liệu vẽ bảng
+cell_data = []
+for idx, row in table_5_0_full.reset_index().iterrows():
+    cell_data.append([
+        row['index'],
+        int(row['Tổng mẫu']),
+        f"{row['Tỷ lệ ACCEPTABLE (%)']:.1f}%",
+        f"{row['Tỷ lệ GOOD (%)']:.1f}%",
+        f"{row['Tỷ lệ POOR (%)']:.1f}%",
+        f"{row['RTT_max (ms)']:.2f}",
+        f"{row['Jitter_max (ms)']:.2f}",
+        f"{row['Loss_max (%)']:.2f}%"
+    ])
+
+columns = ['Kịch bản đo kiểm', 'Tổng mẫu', 'ACCEPTABLE', 'GOOD', 'POOR', 'RTT max (ms)', 'Jitter max (ms)', 'Loss max (%)']
+
+table = ax.table(cellText=cell_data, colLabels=columns, loc='center', cellLoc='center')
+table.auto_set_font_size(False)
+table.set_fontsize(10)
+table.scale(1.1, 1.6)
+
+# Tô màu tiêu đề cột và dòng tổng
+for j, col in enumerate(columns):
+    table[(0, j)].set_facecolor('#2980b9')
+    table[(0, j)].set_text_props(color='white', weight='bold')
+
+for j in range(len(columns)):
+    table[(len(cell_data), j)].set_facecolor('#ecf0f1')
+    table[(len(cell_data), j)].set_text_props(weight='bold')
+
+plt.title("Bảng 5.0: Thống kê định lượng theo 8 kịch bản đo kiểm thực tế", fontsize=13, weight='bold', pad=20)
+plt.tight_layout()
+plt.savefig("table_5_0_figure.png", dpi=300, bbox_inches='tight')
+print("-> Đã xuất thành công hình ảnh bảng biểu: table_5_0_figure.png")
