@@ -1,0 +1,89 @@
+''' Bước 1: Code lấy ping
+import csv
+import datetime
+import os
+import time
+from ping3 import ping
+
+# Danh sách các IP đích cần đo
+TARGETS = {
+    "Cloudflare_VN": "1.1.1.1",
+    "Google_VN": "8.8.8.8",
+    "OpenDNS_Global": "208.67.222.222",
+}
+
+# Tên file CSV lưu dữ liệu mạng di động
+OUTPUT_FILE = "raw_ping_data_mobile.csv"
+
+# Timeout: Sau 2 giây không có phản hồi tính là mất gói
+TIMEOUT_SEC = 2.0
+
+
+def init_csv():
+    """Tạo header cho file CSV nếu file chưa tồn tại."""
+    if not os.path.exists(OUTPUT_FILE):
+        with open(OUTPUT_FILE, mode="w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(
+                [
+                    "timestamp",
+                    "target_name",
+                    "target_ip",
+                    "rtt_ms",
+                    "is_lost",
+                    "network_type",
+                ]
+            )
+
+
+def collect_data(network_type="Mobile_WeakSignal", duration_minutes=25):
+    """Gửi ping liên tục và ghi nối tiếp vào file CSV."""
+    init_csv()
+    print(
+        f"--- Bắt đầu đo trên mạng [{network_type}] trong {duration_minutes} phút ---"
+    )
+
+    end_time = time.time() + (duration_minutes * 60)
+
+    while time.time() < end_time:
+        for name, ip in TARGETS.items():
+            now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            try:
+                # ping3 trả về giây (float) hoặc None/False nếu mất gói
+                delay = ping(ip, timeout=TIMEOUT_SEC, unit="ms")
+
+                if delay is None or delay is False:
+                    rtt = -1.0
+                    is_lost = 1
+                else:
+                    rtt = round(delay, 2)
+                    is_lost = 0
+
+            except Exception:
+                rtt = -1.0
+                is_lost = 1
+
+            # Ghi dòng dữ liệu nối tiếp vào file CSV
+            with open(OUTPUT_FILE, mode="a", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow(
+                    [now_str, name, ip, rtt, is_lost, network_type]
+                )
+
+            # In ra màn hình terminal để giám sát tiến trình
+            status_text = f"{rtt} ms" if is_lost == 0 else "LOST"
+            print(f"[{now_str}] {name} ({ip}): {status_text}")
+
+            time.sleep(0.5)  # Nghỉ 0.5s giữa các server
+
+        time.sleep(1)  # Nghỉ 1s trước khi lặp lại vòng đo
+
+    print(f"Hoàn thành ca đo [{network_type}]. Dữ liệu đã lưu vào {OUTPUT_FILE}")
+
+
+if __name__ == "__main__":
+    # CA 5: TÍN HIỆU SUY HAO VÔ TUYẾN TRONG 25 PHÚT
+    # Thiết lập: Đặt điện thoại phát Hotspot ở xa (sau cửa/tường), máy tính không tải nặng
+    collect_data(network_type="Mobile_WeakSignal"/"Mobile_2AM/..., duration_minutes=25/30)
+    '''
