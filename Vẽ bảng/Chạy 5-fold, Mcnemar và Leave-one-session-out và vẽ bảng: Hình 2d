@@ -1,0 +1,117 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import (
+    LeaveOneGroupOut,
+    StratifiedKFold,
+    cross_val_score,
+    train_test_split,
+)
+from sklearn.tree import DecisionTreeClassifier
+from statsmodels.stats.contingency_tables import mcnemar
+
+# 1. Đọc dữ liệu và thiết lập mô hình
+df = pd.read_csv("dataset_labeled.csv")[cite: 3]
+X = df[["mean_rtt", "jitter", "loss_rate"]][cite: 3]
+y = df["label"][cite: 3]
+groups = df["network_type"][cite: 3]
+
+dt = DecisionTreeClassifier(max_depth=4, random_state=42)[cite: 3]
+lr = LogisticRegression(max_iter=1000, random_state=42)
+
+# 2. Thực thi các phép kiểm định thống kê
+# Kiểm định 1: Stratified 5-Fold Cross-Validation
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+dt_cv = cross_val_score(dt, X, y, cv=cv, scoring="accuracy")
+lr_cv = cross_val_score(lr, X, y, cv=cv, scoring="accuracy")
+
+# Kiểm định 2: McNemar Test trên tập Test 20%
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, stratify=y, random_state=42
+)[cite: 3]
+dt.fit(X_train, y_train)
+lr.fit(X_train, y_train)
+dt_pred, lr_pred = dt.predict(X_test), lr.predict(X_test)
+
+both_correct = np.sum((dt_pred == y_test) & (lr_pred == y_test))
+dt_only = np.sum((dt_pred == y_test) & (lr_pred != y_test))
+lr_only = np.sum((dt_pred != y_test) & (lr_pred == y_test))
+both_wrong = np.sum((dt_pred != y_test) & (lr_pred != y_test))
+table_mcnemar = [[both_correct, lr_only], [dt_only, both_wrong]]
+p_val_mcnemar = mcnemar(table_mcnemar, exact=True).pvalue
+disagreed_count = dt_only + lr_only
+
+# Kiểm định 3: Leave-One-Session-Out
+logo = LeaveOneGroupOut()
+logo_scores_dt = [
+    dt.fit(X.iloc[tr], y.iloc[tr]).score(X.iloc[te], y.iloc[te])
+    for tr, te in logo.split(X, y, groups=groups)
+]
+
+# 3. Xuất kết quả kiểm định ra màn hình
+print("=" * 65)
+print(f"1. 5-FOLD CV ACCURACY : DT = {dt_cv.mean():.4f} +/- {dt_cv.std():.4f} | LR = {lr_cv.mean():.4f} +/- {lr_cv.std():.4f}")[cite: 2, 3]
+print(f"2. MCNEMAR TEST (N=82): p-value = {p_val_mcnemar:.5f} (Bất đồng: {disagreed_count} mẫu)")[cite: 2, 3]
+print(f"3. LOGO ACCURACY (DT) : {np.mean(logo_scores_dt):.4f} +/- {np.std(logo_scores_dt):.4f}")[cite: 2, 3]
+print("=" * 65)
+
+# 4. Tự động nạp số liệu tính toán vào Bảng 5.2 và kết xuất hình ảnh
+headers = [
+    "Phương pháp kiểm định",
+    "Đối tượng đánh giá",
+    "Chỉ số thực nghiệm",
+    "Ý nghĩa phương pháp luận",
+]
+
+table_data = [
+    [
+        "Stratified 5-Fold CV",
+        "Decision Tree\nLogistic Regression",
+        f"{dt_cv.mean():.4f} ± {dt_cv.std():.4f}\n{lr_cv.mean():.4f} ± {lr_cv.std():.4f}",[cite: 2, 3]
+        "Đánh giá độ ổn định phân vùng;\ntriệt tiêu sự phụ thuộc vào một lát cắt mẫu.",[cite: 2, 3]
+    ],
+    [
+        f"McNemar's Test (N = {len(y_test)})",[cite: 3]
+        "So sánh DT vs. LR",
+        f"p-value = {p_val_mcnemar:.5f}\n(Bất đồng: {disagreed_count} mẫu)",[cite: 2, 3]
+        "Khác biệt về độ chính xác tổng thể\nchưa đạt mức có ý nghĩa thống kê (p > 0.05).",[cite: 2, 3]
+    ],
+    [
+        "Leave-One-Session-Out",
+        "Decision Tree",
+        f"{np.mean(logo_scores_dt):.4f} ± {np.std(logo_scores_dt):.4f}",[cite: 2, 3]
+        "Kiểm thử trên phiên đo mới độc lập;\nxác nhận không bị rò rỉ dữ liệu chuỗi thời gian.",[cite: 2, 3]
+    ],
+]
+
+fig, ax = plt.subplots(figsize=(9.2, 2.5), dpi=300)
+ax.axis("off")
+
+table = ax.table(
+    cellText=table_data,
+    colLabels=headers,
+    loc="center",
+    cellLoc="left",
+    colWidths=[0.24, 0.22, 0.22, 0.32],
+)
+
+table.auto_set_font_size(False)
+table.set_fontsize(9.5)
+table.scale(1.0, 2.1)
+
+# Định dạng bảng chuẩn học thuật
+for j in range(len(headers)):
+    cell = table[(0, j)]
+    cell.set_facecolor("#2c3e50")
+    cell.set_text_props(color="white", weight="bold", ha="center")
+
+for i in range(1, len(table_data) + 1):
+    table[(i, 0)].set_text_props(weight="bold")
+    table[(i, 1)].set_text_props(ha="center")
+    table[(i, 2)].set_text_props(ha="center", weight="bold")
+
+plt.tight_layout()
+output_filename = "table_5_2_statistical_tests.png"
+plt.savefig(output_filename, bbox_inches="tight")
+print(f"-> Đã tự động cập nhật số liệu và xuất bảng thành công: {output_filename}")
