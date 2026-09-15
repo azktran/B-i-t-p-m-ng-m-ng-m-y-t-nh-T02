@@ -1,0 +1,189 @@
+Bước 4: Pipeline Huấn luyện và Đánh giá học máy
+import os
+import pandas as pd
+from sklearn.dummy import DummyClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.tree import DecisionTreeClassifier, export_text
+
+DATA_FILE = "dataset_labeled.csv"
+
+
+def run_ml_experiments():
+    if not os.path.exists(DATA_FILE):
+        print(f"Lỗi: Không tìm thấy file {DATA_FILE}")
+        return
+
+    df = pd.read_csv(DATA_FILE)
+    print(f"Đã đọc {len(df)} mẫu từ {DATA_FILE}")
+
+    # Danh sách 9 đặc trưng đầu vào
+    feature_cols = [
+        "mean_rtt",
+        "median_rtt",
+        "min_rtt",
+        "max_rtt",
+        "p95_rtt",
+        "jitter",
+        "loss_rate",
+        "hour",
+        "is_peak_hour",
+    ]
+
+    X = df[feature_cols]
+    y = df["label"]
+
+    # Phân chia dữ liệu Train (80%) - Test (20%) có phân tầng (Stratified)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.20, random_state=42, stratify=y
+    )
+
+    print(f"Kích thước tập Train: {len(X_train)} mẫu | Tập Test: {len(X_test)} mẫu")
+    print("\nPhân bố nhãn trên tập Train:")
+    print(y_train.value_counts(normalize=True).round(3))
+
+    labels_order = ["GOOD", "ACCEPTABLE", "POOR"]
+
+    # =========================================================================
+    # 1. MÔ HÌNH ĐỐI CHUẨN (BASELINE - MAJORITY CLASS)
+    # =========================================================================
+    print("\n" + "=" * 65)
+    print("MÔ HÌNH: Baseline (Majority Class)")
+    print("=" * 65)
+
+    baseline = DummyClassifier(strategy="most_frequent")
+    baseline.fit(X_train, y_train)
+    y_pred_base = baseline.predict(X_test)
+
+    print("\nBảng đánh giá phân loại chi tiết (Classification Report):")
+    print(
+        classification_report(
+            y_test, y_pred_base, labels=labels_order, zero_division=0
+        )
+    )
+
+    print("Confusion Matrix:")
+    cm_base = confusion_matrix(y_test, y_pred_base, labels=labels_order)
+    cm_base_df = pd.DataFrame(
+        cm_base,
+        index=[f"Actual_{lb}" for lb in labels_order],
+        columns=[f"Pred_{lb}" for lb in labels_order],
+    )
+    print(cm_base_df)
+
+    # =========================================================================
+    # 2. MÔ HÌNH LOGISTIC REGRESSION (KÈM CHUẨN HÓA DỮ LIỆU PIPELINE)
+    # =========================================================================
+    print("\n" + "=" * 65)
+    print("MÔ HÌNH: Logistic Regression")
+    print("=" * 65)
+
+    log_reg_pipeline = Pipeline(
+        [
+            ("scaler", StandardScaler()),
+            ("clf", LogisticRegression(max_iter=1000, random_state=42)),
+        ]
+    )
+
+    log_reg_pipeline.fit(X_train, y_train)
+    y_pred_lr = log_reg_pipeline.predict(X_test)
+
+    print("\nBảng đánh giá phân loại chi tiết (Classification Report):")
+    print(
+        classification_report(
+            y_test, y_pred_lr, labels=labels_order, zero_division=0
+        )
+    )
+
+    print("Confusion Matrix:")
+    cm_lr = confusion_matrix(y_test, y_pred_lr, labels=labels_order)
+    cm_lr_df = pd.DataFrame(
+        cm_lr,
+        index=[f"Actual_{lb}" for lb in labels_order],
+        columns=[f"Pred_{lb}" for lb in labels_order],
+    )
+    print(cm_lr_df)
+
+    # =========================================================================
+    # 3. MÔ HÌNH CÂY QUYẾT ĐỊNH (DECISION TREE - MAX DEPTH = 4)
+    # =========================================================================
+    print("\n" + "=" * 65)
+    print("MÔ HÌNH: Decision Tree")
+    print("=" * 65)
+
+    tree_clf = DecisionTreeClassifier(
+        max_depth=4, criterion="gini", random_state=42
+    )
+    tree_clf.fit(X_train, y_train)
+    y_pred_dt = tree_clf.predict(X_test)
+
+    print("\nBảng đánh giá phân loại chi tiết (Classification Report):")
+    print(
+        classification_report(
+            y_test, y_pred_dt, labels=labels_order, zero_division=0
+        )
+    )
+
+    print("Confusion Matrix:")
+    cm_dt = confusion_matrix(y_test, y_pred_dt, labels=labels_order)
+    cm_dt_df = pd.DataFrame(
+        cm_dt,
+        index=[f"Actual_{lb}" for lb in labels_order],
+        columns=[f"Pred_{lb}" for lb in labels_order],
+    )
+    print(cm_dt_df)
+
+    # ĐỘ QUAN TRỌNG ĐẶC TRƯNG
+    print("\n" + "=" * 65)
+    print("PHÂN TÍCH QUAN TRỌNG ĐẶC TRƯNG (FEATURE IMPORTANCE - DECISION TREE)")
+    print("=" * 65)
+    importances = pd.Series(tree_clf.feature_importances_, index=feature_cols)
+    for feat, imp in importances.sort_values(ascending=False).items():
+        print(f"{feat:<15} : {imp:.4f}")
+
+    # LUẬT RẼ NHÁNH
+    print("\nCấu trúc luật rẽ nhánh (Decision Tree Rules):")
+    print(
+        export_text(
+            tree_clf, feature_names=feature_cols, class_names=labels_order
+        )
+    )
+
+    # =========================================================================
+    # 4. PHÂN TÍCH CÁC TRƯỜNG HỢP DỰ ĐOÁN SAI (ERROR ANALYSIS - DECISION TREE)
+    # =========================================================================
+    print("\n" + "=" * 65)
+    print("PHÂN TÍCH CÁC TRƯỜNG HỢP PHÂN LOẠI SAI (ERROR ANALYSIS - DECISION TREE)")
+    print("=" * 65)
+
+    X_test_copy = X_test.copy()
+    X_test_copy["Ground_Truth"] = y_test
+    X_test_copy["Predicted"] = y_pred_dt
+
+    errors = X_test_copy[
+        X_test_copy["Ground_Truth"] != X_test_copy["Predicted"]
+    ]
+    print(f"Số mẫu bị dự đoán sai trên tập Test: {len(errors)}/{len(X_test)}")
+
+    if len(errors) > 0:
+        print(
+            errors[
+                [
+                    "mean_rtt",
+                    "p95_rtt",
+                    "jitter",
+                    "loss_rate",
+                    "Ground_Truth",
+                    "Predicted",
+                ]
+            ].head(10)
+        )
+    else:
+        print("Mô hình dự đoán chính xác tuyệt đối 100% trên tập Test!")
+
+
+if __name__ == "__main__":
+    run_ml_experiments()
