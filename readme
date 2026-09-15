@@ -146,3 +146,5 @@ python "Bước 4/evaluate_methodology.py"
   * *Hạ tầng áp dụng chính sách hạ ưu tiên ICMP (Rate Limiting):* Các router hoặc firewall doanh nghiệp chủ động giới hạn gói ICMP ở mặt phẳng điều khiển (Control Plane) để chống tấn công DDoS có thể khiến mô hình gán nhãn POOR giả tạo dù luồng dữ liệu TCP/HTTPS thực tế vẫn hoạt động thông suốt.
   * *Đường truyền quốc tế có cự ly địa lý lớn:* Độ trễ lan truyền vật lý cao ($RTT > 150\text{ ms}$) qua cáp quang biển sẽ khiến kết nối tự động rơi vào diện POOR dù đường truyền không mất gói và vẫn duy trì xem video 4K ổn định.
 * **Định vị mô hình học máy (Surrogate Modeling):** Mô hình được thiết kế để học xấp xỉ lại bộ quy tắc phân loại dựa trên tiêu chuẩn ITU-T G.1010; độ chính xác cao phản ánh năng lực nén luật và khớp ranh giới hình hộp của Cây quyết định, không thay thế hoàn toàn các phương pháp đo đạc chất lượng trải nghiệm chủ quan (MOS) trực tiếp từ người dùng.
+
+CÓ SỬ DỤNG CÔNG CỤ HỖ TRỢ
