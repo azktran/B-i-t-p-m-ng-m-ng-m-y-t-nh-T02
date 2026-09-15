@@ -1,0 +1,148 @@
+# Phân Loại Chất Lượng Kết Nối Internet Dựa Trên RTT, Packet Loss và Jitter
+
+## 1. Thành viên nhóm và mã sinh viên
+* **Giảng viên hướng dẫn:** TS. Ngô Hải Anh
+* **Lớp tín chỉ:** COSH201 (2526.1 – GD1).1 - Mạng máy tính
+* **Khoa:** Công nghệ và Khoa học Dữ liệu - Trường Đại học Ngoại Thương (FTU)
+
+| STT | Họ và tên | Mã sinh viên | Vai trò |
+| :---: | :--- | :---: | :--- |
+| 1 | Trần Minh Đức | *2519960012* | Nhóm trưởng, Pipeline ML & Báo cáo |
+| 2 | Nguyễn Nhật Quang | *2519960043* | Thu thập dữ liệu & Phân tích thống kê |
+| 3 | Trần Anh Sơn | *2519960046* | Tiền xử lý & Gom cửa sổ đặc trưng |
+| 4 | Nguyễn Vũ Trí Hùng | *2519960020* | Xây dựng bộ luật gán nhãn & Kiểm định |
+| 5 | Nguyễn Bảo Minh | *2519960033* | Trực quan hóa & Đánh giá mô hình |
+
+---
+
+## 2. Mô tả ngắn bài toán
+* Đề tài xây dựng một hệ thống đo kiểm và phân loại chất lượng kết nối Internet Wi-Fi/Mobile thông qua 3 chỉ số mạng cốt lõi: **Round-Trip Time (RTT)**, **Jitter** và **Packet Loss Rate**.
+* **Định vị bài toán (Surrogate Modeling & Rule Extraction):** Nhãn chất lượng (`GOOD`, `ACCEPTABLE`, `POOR`) được gán theo hệ luật chuyên gia 3 cấp tham chiếu từ tiêu chuẩn viễn thông quốc tế **ITU-T G.1010**. Mô hình học máy đóng vai trò mô hình đại diện nhằm kiểm chứng khả năng tự động học xấp xỉ cấu trúc luật ranh giới hình hộp từ dữ liệu thực nghiệm mà không bị phân tán bởi các đặc trưng phụ (như khung giờ, p95_rtt).
+* **Mô hình triển khai:** So sánh đối chuẩn giữa mô hình sàn Baseline (`DummyClassifier`), mô hình tuyến tính đa lớp (`Multinomial Logistic Regression`) và mô hình phi tuyến (`Decision Tree Classifier`, max_depth=4).
+
+---
+
+## 3. Môi trường chạy và Python version
+* **Hệ điều hành kiểm thử:** Windows 10 / 11, Linux (Ubuntu 22.04+)
+* **Python version khuyến nghị:** `Python 3.10` đến `Python 3.12` (hỗ trợ tương thích `Python 3.14`)
+
+---
+
+## 4. Thư viện cần cài và cách cài từ requirements.txt
+
+Tạo file `requirements.txt` trong thư mục gốc với nội dung:
+```text
+ping3>=4.0.4
+numpy>=1.23.0
+pandas>=1.5.0
+scikit-learn>=1.2.0
+matplotlib>=3.6.0
+seaborn>=0.12.0
+statsmodels>=0.14.0
+scipy>=1.10.0
+
+## 5. Dataset: Nguồn, vị trí file, cách tạo hoặc cách tải
+* **Nguồn dữ liệu:** Đo kiểm thực nghiệm trực tiếp bằng giao thức ICMP Ping tới 3 máy chủ công cộng: Cloudflare (`1.1.1.1`), Google Public DNS (`8.8.8.8`), OpenDNS (`208.67.222.222`).
+* **Quy mô:** Bao gồm 8 kịch bản đo kiểm đa dạng (sáng sớm, cao điểm giảng đường, đêm muộn, suy hao xuyên tường...), thu được hơn 12.000 dòng ping thô.
+* **Vị trí file dữ liệu:**
+  * `raw_ping_data.csv`: Dữ liệu đo kiểm ping thô ban đầu (~12.000 bản ghi).
+  * `dataset_features.csv`: Dữ liệu sau khi gom cửa sổ trượt $N = 30$ gói không chồng lấn, trích xuất 9 vector đặc trưng (408 mẫu quan sát).
+  * `dataset_labeled.csv`: Dữ liệu hoàn chỉnh đã được gán nhãn 3 cấp theo tiêu chuẩn ITU-T G.1010.
+
+---
+
+## 6. Cấu trúc thư mục repository
+
+```text
+B-i-t-p-m-ng-m-ng-m-y-t-nh-T02/
+├── README.md
+├── requirements.txt
+├── raw_ping_data_mobile.csv
+├── dataset_features.csv
+├── dataset_labeled.csv
+│
+├── Bước 1/
+│   └── (script thu thập dữ liệu ICMP Ping)
+│
+├── Bước 2/
+│   └── (script tiền xử lý & gom cửa sổ N=30)
+│
+├── Bước 3/
+│   └── (script gán nhãn nghiệp vụ ITU-T G.1010)
+│
+├── Bước 4/
+│   └── (pipeline huấn luyện mô hình & đánh giá)
+│
+└── Visualization/
+    ├── Chạy 5-fold, Mcnemar và Leave-one-session-out và vẽ bảng: Hình 2d
+    ├── Hình 1a
+    ├── Hình 1c
+    ├── Hình 2a.
+    ├── Hình 2b
+    ├── Hình 5
+    ├── hình 1d
+    └── vẽ hình: Hình 1b, hình 2c, Hình 3, Hình 4
+
+## 7. Thứ tự chạy các script / pipeline
+
+### Cài đặt toàn bộ môi trường và thư viện cần thiết
+Trước khi chạy bất kỳ script nào, mở Terminal tại thư mục gốc của dự án và cài đặt đầy đủ các gói phụ thuộc:
+
+```bash
+pip install ping3 numpy pandas scikit-learn matplotlib seaborn statsmodels scipy
+
+# Bước 1: Thu thập gói tin ICMP Ping (Nếu muốn thu thập đợt đo mới)
+python "Bước 1/collect_data.py"
+
+# Bước 2: Gom cửa sổ N=30 và trích xuất vector đặc trưng
+python "Bước 2/feature_engineering.py"
+
+# Bước 3: Gán nhãn dữ liệu theo luật tham chiếu ITU-T G.1010
+python "Bước 3/labeling.py"
+
+# Bước 4: Huấn luyện mô hình cơ bản và đánh giá hiệu năng Train/Test
+python "Bước 4/train_models.py"
+
+# Bước 5: Chạy kiểm định độ vững (5-Fold CV, McNemar Test, Leave-One-Session-Out)
+python "Bước 4/evaluate_methodology.py"
+
+# Bước 6: Kết xuất toàn bộ bảng biểu và đồ thị học thuật trong file visualization
+
+## 8. Output mong đợi
+
+| Loại | Số lượng | Vị trí |
+|---|---|---|
+| Dữ liệu ping thô (ICMP raw logs) | 1 | `raw_ping_data_mobile.csv` |
+| Dữ liệu trích xuất đặc trưng ($N=30$) | 1 | `dataset_features.csv` |
+| Dữ liệu gán nhãn nghiệp vụ (ITU-T G.1010) | 1 | `dataset_labeled.csv` |
+| Biểu đồ cơ cấu tỷ trọng nhãn theo kịch bản | 1 | `Visualization/Hình 1a` |
+| Bảng định lượng cực đại và tỷ lệ phân bố nhãn | 1 | `Visualization/Hình 1c` |
+| Bảng thống kê chỉ số mạng theo khung giờ | 1 | `Visualization/hình 1d` |
+| Biểu đồ so sánh hiệu năng các mô hình | 1 | `Visualization/Hình 2a.` |
+| Ma trận nhầm lẫn (Confusion Matrix) | 1 | `Visualization/Hình 2b` |
+| Bảng kiểm định độ vững thống kê (5-Fold CV, McNemar, LOGO) | 1 | `Visualization/Chạy 5-fold, Mcnemar và Leave-one-session-out và vẽ bảng: Hình 2d` |
+| Biểu đồ phân phối xác suất Boxplot (mean_rtt, jitter, loss) | 1 | `Visualization/vẽ hình: Hình 1b, hình 2c, Hình 3, Hình 4` |
+| Biểu đồ mức độ quan trọng của đặc trưng (Feature Importance) | 1 | `Visualization/vẽ hình: Hình 1b, hình 2c, Hình 3, Hình 4` |
+| Sơ đồ phân nhánh Cây quyết định ($max\_depth=4$) | 1 | `Visualization/vẽ hình: Hình 1b, hình 2c, Hình 3, Hình 4` |
+| Bảng phân tích chi tiết các mẫu dự đoán sai (Error Analysis) | 1 | `Visualization/Hình 5` |
+
+**Chỉ số đánh giá mô hình (Model Evaluation Metrics):** Accuracy, Macro Precision, Macro Recall, Macro F1-score (Chi tiết hiệu năng đối chuẩn Baseline: 0.48, Logistic Regression: 0.88, Decision Tree: 0.98 cùng kiểm định 5-Fold CV và LOGO xem tại `Visualization/Hình 2a.` và `Visualization/Chạy 5-fold, Mcnemar và Leave-one-session-out và vẽ bảng: Hình 2d`).
+
+**Chỉ số đo kiểm mạng cốt lõi (Input Network Features):** Round-Trip Time trung bình (`mean_rtt`), biến thiên trễ (`jitter`), tỷ lệ mất gói (`loss_rate`), độ trễ phân vị 95 (`p95_rtt`).
+
+---
+
+## 9. Ghi chú về random_state, seed và khả năng tái lập kết quả
+* Nhằm bảo đảm tính minh bạch và khả năng tái lập kết quả thực nghiệm 100% theo chuẩn nghiên cứu thực nghiệm, tham số `random_state = 42` được thiết lập đồng bộ trên toàn bộ pipeline xử lý:
+  * **Phân chia dữ liệu (`train_test_split`):** Thiết lập `random_state = 42` kết hợp `stratify = y` để cố định tỷ lệ phân bổ mẫu giữa tập Train và Test (80/20), triệt tiêu hiện tượng trôi sụt các chỉ số đánh giá qua các lần thực thi.
+  * **Khởi tạo và huấn luyện mô hình:** Cố định `random_state = 42` cho cả `DecisionTreeClassifier(max_depth=4)` và `LogisticRegression(max_iter=1000)` nhằm chuẩn hóa quá trình hội tụ trọng số cũng như cơ chế xử lý hòa điểm cắt (tie-breaking) của thuật toán.
+  * **Ngăn ngừa rò rỉ phân phối:** Chuẩn hóa thang đo đặc trưng (`StandardScaler`) được đóng gói bên trong `sklearn.pipeline.Pipeline` cho Hồi quy Logistic, bảo đảm các tham số thống kê ($\mu, \sigma$) chỉ được tính toán trên tập Train.
+
+---
+
+## 10. Các giới hạn hoặc lưu ý an toàn
+* **Bản chất đo lường ICMP Ping:** Gói tin ICMP kích thước nhỏ (32–64 bytes) hoạt động ở Tầng Mạng (Network Layer), chỉ phản ánh thời gian phản hồi tức thời (RTT) và độ biến thiên hàng đợi (Jitter), không đại diện trực tiếp cho thông lượng khả dụng (Available Throughput) ở tầng ứng dụng.
+* **Kịch bản không phù hợp áp dụng:**
+  * *Hạ tầng áp dụng chính sách hạ ưu tiên ICMP (Rate Limiting):* Các router hoặc firewall doanh nghiệp chủ động giới hạn gói ICMP ở mặt phẳng điều khiển (Control Plane) để chống tấn công DDoS có thể khiến mô hình gán nhãn POOR giả tạo dù luồng dữ liệu TCP/HTTPS thực tế vẫn hoạt động thông suốt.
+  * *Đường truyền quốc tế có cự ly địa lý lớn:* Độ trễ lan truyền vật lý cao ($RTT > 150\text{ ms}$) qua cáp quang biển sẽ khiến kết nối tự động rơi vào diện POOR dù đường truyền không mất gói và vẫn duy trì xem video 4K ổn định.
+* **Định vị mô hình học máy (Surrogate Modeling):** Mô hình được thiết kế để học xấp xỉ lại bộ quy tắc phân loại dựa trên tiêu chuẩn ITU-T G.1010; độ chính xác cao phản ánh năng lực nén luật và khớp ranh giới hình hộp của Cây quyết định, không thay thế hoàn toàn các phương pháp đo đạc chất lượng trải nghiệm chủ quan (MOS) trực tiếp từ người dùng.
