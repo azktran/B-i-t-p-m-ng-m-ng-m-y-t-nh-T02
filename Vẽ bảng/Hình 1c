@@ -1,0 +1,79 @@
+import matplotlib.pyplot as plt
+
+
+fig, ax = plt.subplots(figsize=(12, 4.5))
+ax.axis('off')
+
+# Chuẩn bị dữ liệu vẽ bảng
+cell_data = []
+for idx, row in table_5_0_full.reset_index().iterrows():
+    cell_data.append([
+        row['index'],
+        int(row['Tổng mẫu']),
+        f"{row['Tỷ lệ ACCEPTABLE (%)']:.1f}%",
+        f"{row['Tỷ lệ GOOD (%)']:.1f}%",
+        f"{row['Tỷ lệ POOR (%)']:.1f}%",
+        f"{row['RTT_max (ms)']:.2f}",
+        f"{row['Jitter_max (ms)']:.2f}",
+        f"{row['Loss_max (%)']:.2f}%"
+    ])
+
+columns = ['Kịch bản đo kiểm', 'Tổng mẫu', 'ACCEPTABLE', 'GOOD', 'POOR', 'RTT max (ms)', 'Jitter max (ms)', 'Loss max (%)']
+
+table = ax.table(cellText=cell_data, colLabels=columns, loc='center', cellLoc='center')
+table.auto_set_font_size(False)
+table.set_fontsize(10)
+table.scale(1.1, 1.6)
+
+# Tô màu tiêu đề cột và dòng tổng
+for j, col in enumerate(columns):
+    table[(0, j)].set_facecolor('#2980b9')
+    table[(0, j)].set_text_props(color='white', weight='bold')
+
+for j in range(len(columns)):
+    table[(len(cell_data), j)].set_facecolor('#ecf0f1')
+    table[(len(cell_data), j)].set_text_props(weight='bold')
+
+plt.title("Bảng 5.0: Thống kê định lượng theo 8 kịch bản đo kiểm thực tế", fontsize=13, weight='bold', pad=20)
+plt.tight_layout()
+plt.savefig("table_5_0_figure.png", dpi=300, bbox_inches='tight')
+print("-> Đã xuất thành công hình ảnh bảng biểu: table_5_0_figure.png")
+
+
+fig, ax = plt.subplots(figsize=(12, 4.5))
+ax.axis('off')
+
+# Chuẩn bị dữ liệu vẽ bảng
+cell_data = []
+for idx, row in table_5_0_full.reset_index().iterrows():
+    cell_data.append([
+        row['index'],
+        int(row['Tổng mẫu']),
+        f"{row['Tỷ lệ ACCEPTABLE (%)']:.1f}%",
+        f"{row['Tỷ lệ GOOD (%)']:.1f}%",
+        f"{row['Tỷ lệ POOR (%)']:.1f}%",
+        f"{row['RTT_max (ms)']:.2f}",
+        f"{row['Jitter_max (ms)']:.2f}",
+        f"{row['Loss_max (%)']:.2f}%"
+    ])
+
+columns = ['Kịch bản đo kiểm', 'Tổng mẫu', 'ACCEPTABLE', 'GOOD', 'POOR', 'RTT max (ms)', 'Jitter max (ms)', 'Loss max (%)']
+
+table = ax.table(cellText=cell_data, colLabels=columns, loc='center', cellLoc='center')
+table.auto_set_font_size(False)
+table.set_fontsize(10)
+table.scale(1.1, 1.6)
+
+# Tô màu tiêu đề cột và dòng tổng
+for j, col in enumerate(columns):
+    table[(0, j)].set_facecolor('#2980b9')
+    table[(0, j)].set_text_props(color='white', weight='bold')
+
+for j in range(len(columns)):
+    table[(len(cell_data), j)].set_facecolor('#ecf0f1')
+    table[(len(cell_data), j)].set_text_props(weight='bold')
+
+plt.title("Bảng 5.0: Thống kê định lượng theo 8 kịch bản đo kiểm thực tế", fontsize=13, weight='bold', pad=20)
+plt.tight_layout()
+plt.savefig("table_5_0_figure.png", dpi=300, bbox_inches='tight')
+print("-> Đã xuất thành công hình ảnh bảng biểu: table_5_0_figure.png")
