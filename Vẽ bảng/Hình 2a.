@@ -1,0 +1,50 @@
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# Dữ liệu Bảng 5.1
+data = [
+    ["Baseline (Majority Class)", "0.48", "0.16", "0.33", "0.21", "0.31"],
+    ["Logistic Regression (Multinomial)", "0.88", "0.92", "0.69", "0.68", "0.85"],
+    ["Decision Tree (max_depth = 4)", "0.98", "0.98", "0.95", "0.97", "0.98"]
+]
+columns = [
+    "Mô hình phân loại", 
+    "Accuracy", 
+    "Macro\nPrecision", 
+    "Macro\nRecall", 
+    "Macro\nF1-score", 
+    "Weighted\nF1-score"
+]
+
+fig, ax = plt.subplots(figsize=(10, 2.2), dpi=300)
+ax.axis("off")
+
+table = ax.table(
+    cellText=data,
+    colLabels=columns,
+    loc="center",
+    cellLoc="center"
+)
+
+table.auto_set_font_size(False)
+table.set_fontsize(10)
+table.scale(1.0, 1.8)
+
+# Định dạng độ rộng cột (Cột tên mô hình rộng hơn)
+col_widths = [0.32, 0.13, 0.13, 0.13, 0.14, 0.15]
+for i, width in enumerate(col_widths):
+    table.auto_set_column_width(False)
+    for j in range(len(data) + 1):
+        table[(j, i)].set_width(width)
+
+# Tô màu header và dòng kết quả tốt nhất
+for j in range(len(columns)):
+    table[(0, j)].set_facecolor("#2c3e50")
+    table[(0, j)].set_text_props(color="white", weight="bold")
+    # Đậm dòng Decision Tree
+    table[(3, j)].set_text_props(weight="bold")
+    table[(3, j)].set_facecolor("#fef9e7")
+
+plt.tight_layout()
+plt.savefig("table_5_1_clean.png", bbox_inches="tight")
+print("-> Đã xuất ảnh bảng: table_5_1_clean.png")
