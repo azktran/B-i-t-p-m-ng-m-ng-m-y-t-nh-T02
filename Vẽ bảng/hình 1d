@@ -1,0 +1,64 @@
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# 1. Tính toán bảng số liệu từ DataFrame (nếu đọc trực tiếp từ file CSV)
+try:
+  df = pd.read_csv("dataset_features.csv")
+  summary = (
+      df.groupby("is_peak_hour")[["mean_rtt", "jitter", "loss_rate"]]
+      .agg(["mean", "median", "count"])
+      .round(2)
+  )
+  print("SO SÁNH GIỜ CAO ĐIỂM (1) VS GIỜ THẤP ĐIỂM (0):")
+  print("=" * 66)
+  print(summary)
+except Exception:
+  pass
+
+# 2. Xuất bảng ra file ảnh học thuật chuẩn (thay thế ảnh terminal đen)
+columns = [
+    "Khung giờ\n(is_peak_hour)",
+    "Số mẫu\n(N)",
+    "mean_rtt (ms)\nMean | Median",
+    "jitter (ms)\nMean | Median",
+    "loss_rate (%)\nMean | Median",
+]
+
+table_data = [
+    [
+        "Giờ thấp điểm (0)",
+        "267",
+        "124.33 | 79.62",
+        "80.65 | 30.62",
+        "0.82 | 0.00",
+    ],
+    ["Giờ cao điểm (1)", "141", "80.31 | 80.52", "26.88 | 17.78", "0.40 | 0.00"],
+]
+
+fig, ax = plt.subplots(figsize=(9, 2.0), dpi=300)
+ax.axis("off")
+
+table = ax.table(
+    cellText=table_data,
+    colLabels=columns,
+    loc="center",
+    cellLoc="center",
+    colWidths=[0.24, 0.12, 0.22, 0.21, 0.21],
+)
+
+table.auto_set_font_size(False)
+table.set_fontsize(9.5)
+table.scale(1.0, 2.0)
+
+# Định dạng thẩm mỹ: Header xanh than, viền rõ ràng
+for j in range(len(columns)):
+  cell = table[(0, j)]
+  cell.set_facecolor("#2c3e50")
+  cell.set_text_props(color="white", weight="bold")
+
+for i in range(1, len(table_data) + 1):
+  table[(i, 0)].set_text_props(weight="bold")
+
+plt.tight_layout()
+plt.savefig("table_peak_comparison.png", bbox_inches="tight")
+print("-> Đã xuất bảng đẹp thành công: table_peak_comparison.png")
