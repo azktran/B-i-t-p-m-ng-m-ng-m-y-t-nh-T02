@@ -1,0 +1,85 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+
+# 1. Đọc dữ liệu và huấn luyện mô hình
+df = pd.read_csv("dataset_labeled.csv")
+features = ["mean_rtt", "jitter", "loss_rate"]
+X = df[features]
+y = df["label"]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, stratify=y, random_state=42
+)
+
+dt = DecisionTreeClassifier(max_depth=4, random_state=42)
+dt.fit(X_train, y_train)
+y_pred = dt.predict(X_test)
+
+# 2. Tìm các mẫu bị dự đoán sai trên tập Test
+error_mask = y_test != y_pred
+error_indices = y_test[error_mask].index
+
+print(f"-> Tìm thấy {len(error_indices)} mẫu phân loại sai: {list(error_indices)}")
+
+# Trích xuất thông tin các mẫu sai từ DataFrame gốc
+errors_df = df.loc[error_indices, ["mean_rtt", "jitter", "loss_rate", "hour", "label"]].copy()
+errors_df["predicted"] = y_pred[error_mask]
+
+# 3. Chuẩn bị dữ liệu để vẽ bảng
+headers = [
+    "Mẫu số\n(Index)",
+    "mean_rtt\n(ms)",
+    "jitter\n(ms)",
+    "loss_rate\n(%)",
+    "hour",
+    "Nhãn thực tế\n(Ground Truth)",
+    "Nhãn mô hình\ndự đoán",
+]
+
+table_rows = []
+for idx in error_indices:
+    row = errors_df.loc[idx]
+    table_rows.append([
+        str(idx),
+        f"{row['mean_rtt']:.2f}",
+        f"{row['jitter']:.2f}",
+        f"{row['loss_rate'] * 100:.1f}%" if row['loss_rate'] <= 1 else f"{row['loss_rate']:.1f}%",
+        str(int(row["hour"])),
+        str(row["label"]),
+        str(row["predicted"]),
+    ])
+
+# 4. Xuất bảng ra file ảnh chất lượng cao
+fig, ax = plt.subplots(figsize=(9.2, 1.8), dpi=300)
+ax.axis("off")
+
+table = ax.table(
+    cellText=table_rows,
+    colLabels=headers,
+    loc="center",
+    cellLoc="center",
+    colWidths=[0.11, 0.13, 0.12, 0.12, 0.10, 0.21, 0.21],
+)
+
+table.auto_set_font_size(False)
+table.set_fontsize(9.5)
+table.scale(1.0, 1.9)
+
+# Định dạng bảng: Header xám/xanh thanh lịch, in đậm các giá trị khóa
+for j in range(len(headers)):
+    cell = table[(0, j)]
+    cell.set_facecolor("#2c3e50")
+    cell.set_text_props(color="white", weight="bold")
+
+for i in range(1, len(table_rows) + 1):
+    table[(i, 0)].set_text_props(weight="bold")      # Bôi đậm Index
+    table[(i, 5)].set_text_props(weight="bold")      # Bôi đậm Ground Truth
+    table[(i, 6)].set_text_props(weight="bold")      # Bôi đậm Predicted
+
+plt.tight_layout()
+output_img = "table_5_error_analysis.png"
+plt.savefig(output_img, bbox_inches="tight")
+print(f"-> Đã xuất ảnh bảng thành công: {output_img}")
