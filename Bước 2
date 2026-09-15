@@ -1,0 +1,117 @@
+ Bước 2: Tiền xử lí dữ liệu và gom cửa sổ đặc trưng
+import os
+import numpy as np
+import pandas as pd
+
+RAW_DATA_FILE = "raw_ping_data_mobile.csv"
+OUTPUT_FEATURE_FILE = "dataset_features.csv"
+WINDOW_SIZE = 30  # Kích thước cửa sổ quan sát: 30 gói tin liên tiếp
+
+
+def compute_jitter(rtt_series):
+    """Tính toán Jitter theo chuẩn sai phân tuyệt đối RFC 3550 giữa các gói thành công kế tiếp."""
+    valid_rtts = rtt_series[rtt_series > 0].tolist()
+    if len(valid_rtts) < 2:
+        return 0.0
+    diffs = [
+        abs(valid_rtts[i + 1] - valid_rtts[i])
+        for i in range(len(valid_rtts) - 1)
+    ]
+    return float(np.mean(diffs))
+
+
+def process_features():
+    if not os.path.exists(RAW_DATA_FILE):
+        print(f"Lỗi: Không tìm thấy file nguồn {RAW_DATA_FILE}")
+        return
+
+    print(f"Đang đọc dữ liệu từ {RAW_DATA_FILE}...")
+    df = pd.read_csv(RAW_DATA_FILE)
+    print(f"Tổng số dòng log dữ liệu thô: {len(df)}")
+
+    # Chuyển đổi cột timestamp sang định dạng thời gian chuẩn
+    df["timestamp"] = pd.to_datetime(df["timestamp"])
+
+    observations = []
+
+    # Nhóm độc lập theo từng luồng (kịch bản mạng, máy chủ mục tiêu)
+    grouped = df.groupby(["network_type", "target_name"])
+
+    for (net_type, target), group in grouped:
+        group = group.sort_values("timestamp").reset_index(drop=True)
+        total_rows = len(group)
+
+        # Gom từng cửa sổ không đè lấn N = 30
+        for start_idx in range(0, total_rows, WINDOW_SIZE):
+            window = group.iloc[start_idx : start_idx + WINDOW_SIZE]
+
+            # Bỏ qua cửa sổ cuối cùng nếu không đủ 30 gói để đảm bảo tính đồng nhất
+            if len(window) < WINDOW_SIZE:
+                continue
+
+            # 1. Tỷ lệ mất gói
+            lost_count = (window["is_lost"] == 1).sum()
+            loss_rate = round((lost_count / WINDOW_SIZE) * 100.0, 2)
+
+            # 2. Lọc các gói phản hồi thành công (RTT > 0) để tính thống kê độ trễ
+            valid_pings = window[window["rtt_ms"] > 0]["rtt_ms"]
+
+            if len(valid_pings) > 0:
+                mean_rtt = round(float(valid_pings.mean()), 2)
+                median_rtt = round(float(valid_pings.median()), 2)
+                min_rtt = round(float(valid_pings.min()), 2)
+                max_rtt = round(float(valid_pings.max()), 2)
+                p95_rtt = round(float(np.percentile(valid_pings, 95)), 2)
+            else:
+                # Trường hợp mất mạng toàn bộ cửa sổ (100% loss)
+                mean_rtt = median_rtt = min_rtt = max_rtt = p95_rtt = 999.0
+
+            # 3. Biến thiên độ trễ (Jitter)
+            jitter = round(compute_jitter(window["rtt_ms"]), 2)
+
+            # 4. Đặc trưng thời gian và ngữ cảnh giờ cao điểm
+            sample_time = window["timestamp"].iloc[-1]
+            hour = sample_time.hour
+            is_peak_hour = 1 if (19 <= hour <= 22) else 0
+
+            observations.append(
+                {
+                    "network_type": net_type,
+                    "target_name": target,
+                    "mean_rtt": mean_rtt,
+                    "median_rtt": median_rtt,
+                    "min_rtt": min_rtt,
+                    "max_rtt": max_rtt,
+                    "p95_rtt": p95_rtt,
+                    "jitter": jitter,
+                    "loss_rate": loss_rate,
+                    "hour": hour,
+                    "is_peak_hour": is_peak_hour,
+                }
+            )
+
+    result_df = pd.DataFrame(observations)
+    result_df.to_csv(OUTPUT_FEATURE_FILE, index=False)
+
+    print("\n" + "=" * 55)
+    print("HOÀN THÀNH TRÍCH XUẤT ĐẶC TRƯNG!")
+    print(f"- Số lượng mẫu quan sát (Observations) tạo được: {len(result_df)}")
+    print(f"- Tệp kết quả lưu tại: {OUTPUT_FEATURE_FILE}")
+    print("=" * 55)
+    print("\nMột vài dòng dữ liệu mẫu đầu tiên:")
+    print(
+        result_df[
+            [
+                "network_type",
+                "target_name",
+                "mean_rtt",
+                "jitter",
+                "loss_rate",
+                "is_peak_hour",
+            ]
+        ].head()
+    )
+
+
+if __name__ == "__main__":
+    process_features()
