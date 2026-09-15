@@ -1,4 +1,4 @@
-''' Bước 1: Code lấy ping
+Bước 1: Code lấy ping
 import csv
 import datetime
 import os
