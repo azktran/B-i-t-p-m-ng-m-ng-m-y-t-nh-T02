@@ -1,0 +1,63 @@
+Bước 3: Gán nhãn nghiệp vụ
+import os
+import pandas as pd
+
+INPUT_FEATURE_FILE = "dataset_features.csv"
+OUTPUT_LABELED_FILE = "dataset_labeled.csv"
+
+
+def assign_quality_label(row):
+    """Gán nhãn chất lượng mạng dựa trên quy tắc logic nghiệp vụ và chuẩn ITU-T G.1010."""
+    # 1. Kiểm tra điều kiện POOR trước (Ưu tiên cảnh báo mạng suy thoái)
+    if (
+        row["loss_rate"] > 3.0
+        or row["mean_rtt"] > 120.0
+        or row["jitter"] > 30.0
+    ):
+        return "POOR"
+
+    # 2. Kiểm tra điều kiện GOOD (Trần phù hợp với mạng Wi-Fi thực tế)
+    if (
+        row["mean_rtt"] < 55.0
+        and row["jitter"] < 12.0
+        and row["loss_rate"] == 0.0
+    ):
+        return "GOOD"
+
+    # 3. Các trường hợp trung gian còn lại
+    return "ACCEPTABLE"
+
+
+def run_labeling():
+    if not os.path.exists(INPUT_FEATURE_FILE):
+        print(f"Lỗi: Không tìm thấy file {INPUT_FEATURE_FILE}")
+        return
+
+    print(f"Đang đọc dữ liệu từ {INPUT_FEATURE_FILE}...")
+    df = pd.read_csv(INPUT_FEATURE_FILE)
+    print(f"Tổng số mẫu quan sát: {len(df)}")
+
+    # Tiến hành gán nhãn
+    df["label"] = df.apply(assign_quality_label, axis=1)
+
+    # Lưu kết quả ra file mới
+    df.to_csv(OUTPUT_LABELED_FILE, index=False)
+
+    print("\n" + "=" * 55)
+    print("HOÀN THÀNH GÁN NHÃN DỮ LIỆU (GROUND TRUTH)!")
+    print(f"- Tệp kết quả lưu tại: {OUTPUT_LABELED_FILE}")
+    print("=" * 55)
+
+    print("\nThống kê số lượng từng nhãn:")
+    counts = df["label"].value_counts()
+    percentages = df["label"].value_counts(normalize=True) * 100
+
+    summary_df = pd.DataFrame({"Số mẫu": counts, "Tỷ lệ (%)": percentages.round(2)})
+    print(summary_df)
+
+    print("\nMột vài dòng dữ liệu sau khi gán nhãn:")
+    print(df[["mean_rtt", "jitter", "loss_rate", "label"]].head(10))
+
+
+if __name__ == "__main__":
+    run_labeling()
